@@ -2,9 +2,11 @@
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "vgl.h"
 
 #include <iostream>
 #include <cmath>
+#include <chrono>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -39,14 +41,12 @@ in vec3 color;
 
 out vec4 FragColor;
 
-uniform sampler2D funkyTexture;
+uniform sampler2D crate, face;
+uniform float time;
   
 void main()
 {
-    //if (tex_coords.x == 0)
-      FragColor = texture(funkyTexture, tex_coords);
-    // else
-    //   FragColor = vec4(1, 0, 0, 1);
+    FragColor = mix(texture(crate, tex_coords), texture(face, tex_coords), sin(time)*0.5+0.5);
 })";
 
 int main()
@@ -109,7 +109,7 @@ int main()
       std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
   // link shaders
-  int shaderProgram = glCreateProgram();
+  GLuint shaderProgram = glCreateProgram();
   glAttachShader(shaderProgram, vertexShader);
   glAttachShader(shaderProgram, fragmentShader);
   glLinkProgram(shaderProgram);
@@ -156,39 +156,19 @@ int main()
   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (float*)0+6);
   glEnableVertexAttribArray(2);
 
-  // prepare our texture
-  int width, height, nrChannels;
-  unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
-  if (!data) {
-    std::cerr << "stbi_load oof\n";
-  }
-  std::cout << "Image loaded with width = " << width << " and height = " << height << '\n';
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  // set the texture wrapping parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
-  stbi_image_free(data);
+  GLuint crate_texture, face_texture;
+  crate_texture = vglLoadTexture("container.jpg", "crate", shaderProgram, 0, GL_RGB);
+  face_texture = vglLoadTexture("awesomeface.png", "face", shaderProgram, 1, GL_RGBA);
 
-  glUseProgram(shaderProgram);
-  GLint texture_unit;
-  texture_unit = glGetUniformLocation(shaderProgram, "funkyTexture");
-  if (texture_unit < 0) {
-    if (texture_unit == -1) {
-      std::cerr << "Coulnd't find funkyTexture.\n";
-    }
-    std::cerr << "glGetUniformLocation oof\n";
+  /* Variable 'time' is used for the fade effect. */
+  GLfloat time = glGetUniformLocation(shaderProgram, "time");
+  if (time < 0) {
+    std::cerr << "time oof\n";
     return 1;
   }
-  glUniform1i(texture_unit, 0);
-  
-  // render loop
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+// render loop
   // -----------
   while (!glfwWindowShouldClose(window))
     {
@@ -202,9 +182,15 @@ int main()
       glClear(GL_COLOR_BUFFER_BIT);
 
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, texture);
+      glBindTexture(GL_TEXTURE_2D, crate_texture);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, face_texture);
 
       glUseProgram(shaderProgram);
+      
+      auto t2 = std::chrono::high_resolution_clock::now();
+      glUniform1f(time, std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() / 1000.);
+
       glBindVertexArray(VAO);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
