@@ -196,6 +196,8 @@ int main()
       auto t2 = std::chrono::high_resolution_clock::now();
       glUniform1f(time, std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() / 1000.);
 
+      // No need to perform the binding call on each frame but it seems to make the code more
+      // expandable if there were e.g. other vertex arrays
       glBindVertexArray(VAO);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
