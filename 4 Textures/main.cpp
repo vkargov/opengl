@@ -171,7 +171,12 @@ int main()
   }
   auto t1 = std::chrono::high_resolution_clock::now();
 
-// render loop
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, crate_texture);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, face_texture);
+
+  // render loop
   // -----------
   while (!glfwWindowShouldClose(window))
     {
@@ -183,11 +188,6 @@ int main()
       // ------
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
-
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, crate_texture);
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, face_texture);
 
       // No need to use glUseProgram every frame because there's only one shader
       // https://stackoverflow.com/questions/64089592/why-is-gluseprogram-called-every-frame-with-gluniform
