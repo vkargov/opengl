@@ -126,10 +126,10 @@ int main()
   // ------------------------------------------------------------------
   GLfloat vertices[] = {
     // positions          // colors           // texture coords
-    0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-    0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+    0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   2.0f, 2.0f,   // top right
+    0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   2.0f, 0.0f,   // bottom right
     -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 2.0f    // top left 
   };
   GLuint elements[] = {0, 1, 2, 2, 3, 0};
 
@@ -155,6 +155,9 @@ int main()
   // texture coordinate
   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (float*)0+6);
   glEnableVertexAttribArray(2);
+
+  // needs to be called before setting up uniforms by vglLoadTexture
+  glUseProgram(shaderProgram);
 
   GLuint crate_texture, face_texture;
   crate_texture = vglLoadTexture("container.jpg", "crate", shaderProgram, 0, GL_RGB);
@@ -186,7 +189,9 @@ int main()
       glActiveTexture(GL_TEXTURE1);
       glBindTexture(GL_TEXTURE_2D, face_texture);
 
-      glUseProgram(shaderProgram);
+      // No need to use glUseProgram every frame because there's only one shader
+      // https://stackoverflow.com/questions/64089592/why-is-gluseprogram-called-every-frame-with-gluniform
+      //glUseProgram(shaderProgram);
       
       auto t2 = std::chrono::high_resolution_clock::now();
       glUniform1f(time, std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() / 1000.);

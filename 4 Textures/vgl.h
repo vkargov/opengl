@@ -16,8 +16,8 @@ GLuint vglLoadTexture(const char* path, const char* sampler_name, GLuint shader_
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
   // set the texture wrapping parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
   // set texture filtering parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -26,7 +26,6 @@ GLuint vglLoadTexture(const char* path, const char* sampler_name, GLuint shader_
 
   stbi_image_free(data);
 
-  glUseProgram(shader_program);
   GLint texture_unit_location;
   texture_unit_location = glGetUniformLocation(shader_program, sampler_name);
   if (texture_unit_location < 0) {
