@@ -201,12 +201,13 @@ int main()
   tryOutGlm();
   
   // Build pones
-  vector<Pony> ponies(10);
+  vector<Pony> ponies(30);
   mt19937 gen(random_device{}());
   uniform_real_distribution<> distr_vec(-1, 1);
   uniform_real_distribution<> distr_speed(0, 1);
 
-  for (Pony& pony : ponies) {
+  for (int i = 0; i < ponies.size(); i++) {
+    auto&& pony = ponies[i];
     pony.pos.x = distr_vec(gen);
     pony.pos.y = distr_vec(gen);
     pony.pos.z = distr_vec(gen);
@@ -217,6 +218,17 @@ int main()
     pony.rotation_axis = glm::normalize(axis);
     pony.speed = distr_speed(gen);
     pony.scale = distr_speed(gen) * 0.5;
+
+    // Collision check. Re-roll all the parameters if the collision check fails.
+    for (int j = 0; j < i; j++) {
+      auto&& pony2 = ponies[j];
+      auto dx = (pony.pos.x - pony2.pos.x);
+      auto dy = (pony.pos.y - pony2.pos.y);
+      auto dz = (pony.pos.z - pony2.pos.z);
+      auto mindist = pony.scale + pony2.scale;
+      if (2 * mindist * mindist > dx*dx + dy*dy + dz*dz)
+        i--;
+    }
     // cout << "Generated the followig pony:\n";
     // cout << "Position: " << pony.pos.x << ", " << pony.pos.y << ", " << pony.pos.z << '\n';
     // cout << "Rotation axis: " << pony.rotation_axis.x << ", " << pony.rotation_axis.y << ", " << pony.rotation_axis.z << '\n';
