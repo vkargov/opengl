@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -23,20 +24,8 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 void tryOutGlm() {
-  glm::mat4 trans = glm::mat4(1.0f);
-  trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-
-  glm::mat4 trans2 = glm::mat4(1.0f);
-  trans2 = glm::rotate(trans2, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
-  trans2 = glm::rotate(trans2, glm::radians(90.0f), glm::vec3(0.0, -1.0, 0.0));
-
-  trans = trans * trans2;
-  
-  //trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-
-  glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-  vec = trans * vec;
-  std::cout << vec.x << ", " << vec.y << ", " << vec.z << std::endl;
+  glm::mat4 proj = glm::perspective(glm::radians(40.0f), 1.0f, 0.1f, 100.0f);
+  cout << "Perspective matrix:\n" << glm::to_string(proj) << '\n';
 }
 
 struct Pony {
@@ -50,7 +39,10 @@ int main()
 {
   // glfw: initialize and configure
   // ------------------------------
-  glfwInit();
+  if (!glfwInit()) {
+    cout << "Cannot initialize GLFW!";
+    return -1;
+  };
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -82,14 +74,28 @@ int main()
   auto ponyShader = vglBuildShaderFromFile("transpose_vert.glsl", "texture_frag.glsl");
   auto bgShader = vglBuildShaderFromFile("transpose_vert.glsl", "psychedelic_frag.glsl");
 
-  // set up vertex data (and buffer(s)) and configure vertex attributes
+  // Optimal reprezentation of a cube for
+  // GL_TRIANGLE_STRIP rendering
+  // Note to self: it takes way more time to
+  // figure this out than it seems
+  // But hey look, only 14 vertices
   // ------------------------------------------------------------------
   GLfloat vertices[] = {
-    // positions        // texture coordinates
-    1.0f,  1.0f, 0.0f,  1.0f, 1.0f,    // top right
-    1.0f, -1.0f, 0.0f,  1.0f, 0.0f,    // bottom right
-    -1.0f, 1.0f, 0.0f,  0.0f, 1.0f,    // top left 
-    -1.0f,-1.0f, 0.0f,  0.0f, 0.0f     // bottom left
+    // positions          // texture coordinates
+    -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,  1.0f,  0.0f,
+     1.0f, -1.0f, -1.0f,  0.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,
+    -1.0f, -1.0f,  1.0f,  0.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+    -1.0f,  1.0f, -1.0f,  1.0f,  0.0f,
+     1.0f, -1.0f, -1.0f,  0.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,
+    -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,  0.0f,  0.0f
   };
 
   unsigned int VBO, VAO, EBO;
@@ -113,7 +119,7 @@ int main()
   glUseProgram(ponyShader);
 
   GLuint pony_texture;
-  pony_texture = vglLoadTexture("pony.png", "pony", ponyShader, 0, GL_RGBA);
+  pony_texture = vglLoadTexture("container.jpg", "pony", ponyShader, 0, GL_RGB);
 
   /* Variable 'time' is used for the fade effect. */
   auto pony_time_loc = glGetUniformLocation(ponyShader, "time");
@@ -133,11 +139,14 @@ int main()
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+  // Enable depth testing
+  glEnable(GL_DEPTH_TEST);
+
   // Experiement with GLM									  
   tryOutGlm();
   
   // Build pones
-  vector<Pony> ponies(20);
+  vector<Pony> ponies(10);
   mt19937 gen(random_device{}());
   uniform_real_distribution<> distr_vec(-1, 1);
   uniform_real_distribution<> distr_speed(0, 1);
@@ -153,17 +162,23 @@ int main()
     pony.rotation_axis = glm::normalize(axis);
     pony.speed = distr_speed(gen);
     pony.scale = distr_speed(gen) * 0.5;
-    cout << "Generated the followig pony:\n";
-    cout << "Position: " << pony.pos.x << ", " << pony.pos.y << ", " << pony.pos.z << '\n';
-    cout << "Rotation axis: " << pony.rotation_axis.x << ", " << pony.rotation_axis.y << ", " << pony.rotation_axis.z << '\n';
-    cout << "Speed: " << pony.speed << '\n';
-    cout << "Scale: " << pony.speed << '\n';
+    // cout << "Generated the followig pony:\n";
+    // cout << "Position: " << pony.pos.x << ", " << pony.pos.y << ", " << pony.pos.z << '\n';
+    // cout << "Rotation axis: " << pony.rotation_axis.x << ", " << pony.rotation_axis.y << ", " << pony.rotation_axis.z << '\n';
+    // cout << "Speed: " << pony.speed << '\n';
+    // cout << "Scale: " << pony.speed << '\n';
   }
 
   auto pony_tm_uniform_location = glGetUniformLocation(ponyShader, "tm");
   auto background_tm_uniform_location = glGetUniformLocation(bgShader, "tm");
 
   glm::mat4 identity_matrix = glm::mat4(1.0f);
+
+  // Camera matrix
+  glm::mat4 camera = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, -1.5));
+
+  // Perspective translation
+  glm::mat4 asd = glm::perspective(90., (double) SCR_WIDTH / SCR_HEIGHT, 0.1, 100.);
 
   // render loop
   // -----------
@@ -176,7 +191,7 @@ int main()
       // render
       // ------
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       // No need to use glUseProgram every frame because there's only one shader
       // https://stackoverflow.com/questions/64089592/why-is-gluseprogram-called-every-frame-with-gluniform
@@ -187,13 +202,13 @@ int main()
 
       // Render background
       glUseProgram(bgShader);
+
       auto background_time_loc = glGetUniformLocation(bgShader, "time");
       glUniformMatrix4fv(background_tm_uniform_location, 1, GL_FALSE, glm::value_ptr(identity_matrix));
-      cout << background_time_loc << ", " << '\n';
+      //cout << background_time_loc << ", " << '\n';
       glUniform1f(background_time_loc, dt);
-      vglCheckError();
       //cout << "error status: " << glGetError() << '\n';
-      glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+      //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
       // Render ponies
       glUseProgram(ponyShader);
@@ -201,19 +216,21 @@ int main()
       glUniform1f(pony_time_loc, (GLfloat)dt);
 
       for (auto& pony : ponies) {
-        // translation matrix
+        // Model matrix
         //cout << "New matrix\n";
-        glm::mat4 tm = glm::translate(identity_matrix, pony.pos);
+        glm::mat4 model = glm::translate(identity_matrix, pony.pos);
         //cout << "After translate: " << glm::to_string(tm) << '\n';
         auto angle = glm::radians<float>(pony.speed * dt);
-        tm = glm::rotate(tm, angle, pony.rotation_axis);
+        model = glm::rotate(model, angle, pony.rotation_axis);
         //cout << "After rotate:" << glm::to_string(tm) << '\n';
-        tm = glm::scale(tm, glm::vec3(pony.scale));
+        model = glm::scale(model, glm::vec3(pony.scale));
+
+        glm::mat4 tm = asd * camera * model;        
 
         glUniformMatrix4fv(pony_tm_uniform_location, 1, GL_FALSE, glm::value_ptr(tm));
 
         // Draw pone
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 14); // 14 vertices represent 1 cube
       }
 
       // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

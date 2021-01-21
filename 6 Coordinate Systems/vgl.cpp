@@ -1,7 +1,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb/stb_image.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -123,7 +123,8 @@ GLenum vglCheckError() {
   case GL_NO_ERROR:
     return error;
   case GL_INVALID_ENUM:
-    msg = "GL_INVALID_ENUM";
+    msg = "GL_INVALID_ENUM: \
+    * the uniform you're getting is not an accepted value\n";
     break;
   case GL_INVALID_VALUE:
     msg = "GL_INVALID_VALUE";
