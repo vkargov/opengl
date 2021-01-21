@@ -35,6 +35,53 @@ struct Pony {
   double scale;
 };
 
+struct CameraState {
+  // Projection matrix. Can be affected by the window size callback.
+  glm::mat4 projection;
+  // FOV. Can be changed with keys.
+  double fov = 90.;
+  double aspect_ratio;  
+};
+
+void updateProjectionMatrix (GLFWwindow* window) {
+  auto camera_state = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+  camera_state->projection = glm::perspective(glm::radians(camera_state->fov), camera_state->aspect_ratio, 0.1, 100.);
+}
+
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
+  auto camera_state = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+  camera_state->aspect_ratio = (double) width / height;
+  updateProjectionMatrix(window);
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+  //cout << "Key event!\n" << flush;
+
+  bool update_projection_matrix = false;
+
+  if (action == GLFW_RELEASE)
+    return;
+
+  CameraState *cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+
+  switch (key) {
+    case GLFW_KEY_LEFT_BRACKET:
+      cam->fov -= 1;
+      update_projection_matrix = true;
+      break;
+    case GLFW_KEY_RIGHT_BRACKET:
+      cam->fov += 1;
+      update_projection_matrix = true;
+      break;
+  }
+
+  if (update_projection_matrix) {
+    cout << "FOV = " << cam->fov << endl;
+    updateProjectionMatrix(window);
+  }
+}
+
 int main()
 {
   // glfw: initialize and configure
@@ -62,6 +109,14 @@ int main()
     }
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+  CameraState cam;
+  glfwSetWindowUserPointer(window, &cam);
+
+  // update the projection matrix whenever the window changes
+  glfwSetWindowSizeCallback(window, window_size_callback);
+
+  glfwSetKeyCallback(window, keyCallback);
 
   // glad: load all OpenGL function pointers
   // ---------------------------------------
@@ -177,8 +232,8 @@ int main()
   // Camera matrix
   glm::mat4 camera = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, -1.5));
 
-  // Perspective translation
-  glm::mat4 asd = glm::perspective(90., (double) SCR_WIDTH / SCR_HEIGHT, 0.1, 100.);
+  // Set up the perspective projection
+  window_size_callback(window, SCR_WIDTH, SCR_HEIGHT);
 
   // render loop
   // -----------
@@ -187,6 +242,8 @@ int main()
       // input
       // -----
       processInput(window);
+
+      int state;
 
       // render
       // ------
@@ -225,7 +282,7 @@ int main()
         //cout << "After rotate:" << glm::to_string(tm) << '\n';
         model = glm::scale(model, glm::vec3(pony.scale));
 
-        glm::mat4 tm = asd * camera * model;        
+        glm::mat4 tm = cam.projection * camera * model;
 
         glUniformMatrix4fv(pony_tm_uniform_location, 1, GL_FALSE, glm::value_ptr(tm));
 
