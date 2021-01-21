@@ -6,8 +6,8 @@ GLuint vglLoadTexture(const char* path, const char* sampler_name, GLuint shader_
   // prepare our texture
   GLuint texture;  
   int width, height, nrChannels;
-  unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
   stbi_set_flip_vertically_on_load(true);
+  unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
   if (!data) {
     std::cerr << "vglLoadTexture oof: cannot load texture " << path << '\n';
     throw std::invalid_argument{path};
