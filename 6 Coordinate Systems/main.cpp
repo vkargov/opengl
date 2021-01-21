@@ -39,13 +39,15 @@ struct CameraState {
   // Projection matrix. Can be affected by the window size callback.
   glm::mat4 projection;
   // FOV. Can be changed with keys.
-  double fov = 90.;
-  double aspect_ratio;  
+  double fov;
+  double aspect_ratio;
+  double zNear;
+  CameraState() : fov(90), zNear(0.1) {};
 };
 
 void updateProjectionMatrix (GLFWwindow* window) {
-  auto camera_state = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
-  camera_state->projection = glm::perspective(glm::radians(camera_state->fov), camera_state->aspect_ratio, 0.1, 100.);
+  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+  cam->projection = glm::perspective(glm::radians(cam->fov), cam->aspect_ratio, cam->zNear, 100.);
 }
 
 void window_size_callback(GLFWwindow* window, int width, int height)
@@ -74,10 +76,18 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       cam->fov += 1;
       update_projection_matrix = true;
       break;
+    case GLFW_KEY_J:
+      cam->zNear -= 0.01;
+      update_projection_matrix = true;
+      break;
+    case GLFW_KEY_K:
+      cam->zNear += 0.01;
+      update_projection_matrix = true;
+      break;
   }
 
   if (update_projection_matrix) {
-    cout << "FOV = " << cam->fov << endl;
+    cout << "FOV = " << cam->fov << ", zNear = " << cam->zNear << endl;
     updateProjectionMatrix(window);
   }
 }
@@ -110,7 +120,7 @@ int main()
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-  CameraState cam;
+  CameraState cam{};
   glfwSetWindowUserPointer(window, &cam);
 
   // update the projection matrix whenever the window changes
