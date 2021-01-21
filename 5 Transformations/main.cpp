@@ -192,7 +192,7 @@ int main()
       cout << background_time_loc << ", " << '\n';
       glUniform1f(background_time_loc, dt);
       vglCheckError();
-      cout << "error status: " << glGetError() << '\n';
+      //cout << "error status: " << glGetError() << '\n';
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
       // Render ponies

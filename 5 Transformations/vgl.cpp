@@ -60,11 +60,11 @@ GLuint vglBuildShaderFromFile(const char* vertex_file_name, const char* fragment
   // TODO idiomatic reading of files into a string is a whole can of worms...
   // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
   std::ifstream vertex_shader_file(vertex_file_name);
-  std::string vertex_shader_src {std::istreambuf_iterator<char>(vertex_shader_file),
-                                 std::istreambuf_iterator<char>()};
+  std::string vertex_shader_src {std::istreambuf_iterator<char>{vertex_shader_file},
+                                 std::istreambuf_iterator<char>{}};
   std::ifstream fragment_shader_file(fragment_file_name);
-  std::string fragment_shader_src {std::istreambuf_iterator<char>(fragment_shader_file),
-                                   std::istreambuf_iterator<char>()};
+  std::string fragment_shader_src {std::istreambuf_iterator<char>{fragment_shader_file},
+                                   std::istreambuf_iterator<char>{}};
 
   GLint success;
   char infoLog[512];
@@ -129,8 +129,10 @@ GLenum vglCheckError() {
     msg = "GL_INVALID_VALUE";
     break;  
   case GL_INVALID_OPERATION:
-    msg = "(GL_INVALID_OPERATION: \
-The specified operation is not allowed in the current state. The offending command is ignored and has no other side effect than to set the error flag.";
+    msg = "GL_INVALID_OPERATION: \
+The specified operation is not allowed in the current state. The offending command is ignored and has no other side effect than to set the error flag.\n\
+Things to check are:\n\
+* Are you sure the type of the uniform you're setting matches?\n";
     break;  
   case GL_INVALID_FRAMEBUFFER_OPERATION:
     msg = "GL_INVALID_FRAMEBUFFER_OPERATION";
