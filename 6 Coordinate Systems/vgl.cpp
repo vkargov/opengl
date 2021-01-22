@@ -124,7 +124,8 @@ GLenum vglCheckError() {
     return error;
   case GL_INVALID_ENUM:
     msg = "GL_INVALID_ENUM: \
-    * glEnable: are you using the correct value? You can't just OR multiple values!\n";
+Given when an enumeration parameter is not a legal enumeration for that function. \
+* glEnable: are you using the correct value? You can't just OR multiple values!\n";
     break;
   case GL_INVALID_VALUE:
     msg = "GL_INVALID_VALUE";
