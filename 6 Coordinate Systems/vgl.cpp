@@ -124,7 +124,7 @@ GLenum vglCheckError() {
     return error;
   case GL_INVALID_ENUM:
     msg = "GL_INVALID_ENUM: \
-    * the uniform you're getting is not an accepted value\n";
+    * glEnable: are you using the correct value? You can't just OR multiple values!\n";
     break;
   case GL_INVALID_VALUE:
     msg = "GL_INVALID_VALUE";
