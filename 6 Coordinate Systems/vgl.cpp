@@ -117,6 +117,8 @@ GLuint vglBuildShaderFromFile(const char* vertex_file_name, const char* fragment
 }
 
 GLenum vglCheckError() {
+  // Error messages taken from:
+  // https://www.khronos.org/opengl/wiki/OpenGL_Error
   auto error = glGetError();
   std::string msg;
   switch (error) {
