@@ -251,9 +251,6 @@ int main()
 
   glm::mat4 identity_matrix = glm::mat4(1.0f);
 
-  // Camera matrix
-  glm::mat4 camera = glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, -1.5));
-
   // Set up the perspective projection
   window_size_callback(window, SCR_WIDTH, SCR_HEIGHT);
 
@@ -304,6 +301,14 @@ int main()
         //cout << "After rotate:" << glm::to_string(tm) << '\n';
         model = glm::scale(model, glm::vec3(pony.scale));
 
+        float radius = 1.5;
+        // rotate clockwise
+        float cameraX = -sin(glfwGetTime()) * radius;
+        float cameraZ = -cos(glfwGetTime()) * radius;
+        glm::vec3 eye = glm::vec3(cameraX, 0, cameraZ);
+        glm::vec3 center = glm::vec3(0.0, 0.0, 0.0);
+        glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
+        glm::mat4 camera = glm::lookAt(eye, center, up);
         glm::mat4 tm = cam.projection * camera * model;
 
         glUniformMatrix4fv(pony_tm_uniform_location, 1, GL_FALSE, glm::value_ptr(tm));
