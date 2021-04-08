@@ -198,7 +198,7 @@ int main()
   glUseProgram(ponyShader);
 
   GLuint pony_texture;
-  pony_texture = vglLoadTexture("container.jpg", "pony", ponyShader, 0, GL_RGB);
+  pony_texture = vglLoadTexture("../resources/container.jpg", "pony", ponyShader, 0, GL_RGB);
 
   /* Variable 'time' is used for the fade effect. */
   auto pony_time_loc = glGetUniformLocation(ponyShader, "time");
