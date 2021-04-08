@@ -18,6 +18,31 @@
 
 #include "vgl.h"
 
+// Optimal reprezentation of a cube for
+// GL_TRIANGLE_STRIP rendering
+// Note to self: it takes way more time to
+// figure this out than it seems
+// But hey look, only 14 vertices
+// ------------------------------------------------------------------
+GLfloat vglCubeVertices[] = {
+  // positions          // texture coordinates
+  -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
+  -1.0f, -1.0f,  1.0f,  1.0f,  0.0f,
+   1.0f, -1.0f, -1.0f,  0.0f,  1.0f,
+   1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+   1.0f,  1.0f,  1.0f,  1.0f,  0.0f,
+  -1.0f, -1.0f,  1.0f,  0.0f,  1.0f,
+  -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,
+  -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+  -1.0f,  1.0f, -1.0f,  1.0f,  0.0f,
+   1.0f, -1.0f, -1.0f,  0.0f,  1.0f,
+   1.0f,  1.0f, -1.0f,  1.0f,  1.0f,
+   1.0f,  1.0f,  1.0f,  1.0f,  0.0f,
+  -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,
+  -1.0f,  1.0f,  1.0f,  0.0f,  0.0f
+};
+size_t vglCubeVerticesSize = sizeof(vglCubeVertices);
+
 GLuint vglLoadTexture(const char* path, const char* sampler_name, GLuint shader_program, GLuint texture_unit, GLenum format) {
   // prepare our texture
   GLuint texture;  

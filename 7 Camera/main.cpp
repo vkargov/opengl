@@ -35,19 +35,13 @@ struct Pony {
   double scale;
 };
 
-struct CameraState {
-  // Projection matrix. Can be affected by the window size callback.
-  glm::mat4 projection;
-  // FOV. Can be changed with keys.
-  double fov;
-  double aspect_ratio;
-  double zNear;
-  CameraState() : fov(90), zNear(0.1) {};
-};
+void updateProjectionMatrix_ (CameraState *cam) {
+  cam->projection = glm::perspective(glm::radians(cam->fov), cam->aspect_ratio, cam->zNear, 100.);
+}
 
 void updateProjectionMatrix (GLFWwindow* window) {
   auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
-  cam->projection = glm::perspective(glm::radians(cam->fov), cam->aspect_ratio, cam->zNear, 100.);
+  updateProjectionMatrix_(cam);
 }
 
 void window_size_callback(GLFWwindow* window, int width, int height)
@@ -60,35 +54,74 @@ void window_size_callback(GLFWwindow* window, int width, int height)
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   //cout << "Key event!\n" << flush;
 
-  bool update_projection_matrix = false;
-
-  if (action == GLFW_RELEASE)
-    return;
-
   CameraState *cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
 
-  switch (key) {
-    case GLFW_KEY_LEFT_BRACKET:
-      cam->fov -= 1;
-      update_projection_matrix = true;
-      break;
-    case GLFW_KEY_RIGHT_BRACKET:
-      cam->fov += 1;
-      update_projection_matrix = true;
-      break;
-    case GLFW_KEY_J:
-      cam->zNear -= 0.01;
-      update_projection_matrix = true;
-      break;
-    case GLFW_KEY_K:
-      cam->zNear += 0.01;
-      update_projection_matrix = true;
-      break;
+  // Not interested in repeats, they only mess things up with jerky motion
+  // If a key has been pressed, we *know* it's still pressed if it hasn't been released
+  // (big brain moment)
+  if (action == GLFW_REPEAT)
+    return;
+
+  if (cam->keys[key].state != action) {
+    cam->keys[key].state = action;
+    cam->keys[key].timestamp = glfwGetTime();
   }
 
-  if (update_projection_matrix) {
-    cout << "FOV = " << cam->fov << ", zNear = " << cam->zNear << endl;
-    updateProjectionMatrix(window);
+  cout << "Action = " << action << '\n';
+}
+
+void handleKeys(CameraState& cam) {
+
+  bool update_projection_matrix = false;
+
+  auto d0 = glfwGetTime();
+
+  constexpr float speed = 0.05;
+  for (int key = 0; key < GLFW_KEY_LAST; key++) {
+    if (cam.keys[key].state == GLFW_RELEASE)
+      continue;
+
+    float dt = d0 - cam.keys[key].timestamp;
+
+    switch (key) {
+      case GLFW_KEY_W:
+      case GLFW_KEY_UP:
+        cam.pos += cam.dir * speed * dt;
+        cout << "up\n";
+        break;
+      case GLFW_KEY_S:
+      case GLFW_KEY_DOWN:
+        cam.pos -= cam.dir * speed * dt;
+        cout << "down\n";
+        break;
+      // case GLFW_KEY_A:
+      //   cam->pos -= speed;
+      //   break;
+      // case GLFW_KEY_D:
+      //   cam->pos += speed;
+      //   break;
+      case GLFW_KEY_LEFT_BRACKET:
+        cam.fov -= 1 * dt;
+        update_projection_matrix = true;
+        break;
+      case GLFW_KEY_RIGHT_BRACKET:
+        cam.fov += 1 * dt;
+        update_projection_matrix = true;
+        break;
+      case GLFW_KEY_J:
+        cam.zNear -= 0.01 * dt;
+        update_projection_matrix = true;
+        break;
+      case GLFW_KEY_K:
+        cam.zNear += 0.01 * dt;
+        update_projection_matrix = true;
+        break;
+    }
+
+    if (update_projection_matrix) {
+      //cout << "FOV = " << cam.fov << ", zNear = " << cam.zNear << endl;
+      updateProjectionMatrix_(&cam);
+    }
   }
 }
 
@@ -103,6 +136,9 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+  // Enable vsync
+  glfwWindowHint(GLFW_DOUBLEBUFFER, GL_TRUE);
 
 #ifdef __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
@@ -139,29 +175,7 @@ int main()
   auto ponyShader = vglBuildShaderFromFile("transpose_vert.glsl", "texture_frag.glsl");
   auto bgShader = vglBuildShaderFromFile("transpose_vert.glsl", "psychedelic_frag.glsl");
 
-  // Optimal reprezentation of a cube for
-  // GL_TRIANGLE_STRIP rendering
-  // Note to self: it takes way more time to
-  // figure this out than it seems
-  // But hey look, only 14 vertices
-  // ------------------------------------------------------------------
-  GLfloat vertices[] = {
-    // positions          // texture coordinates
-    -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
-    -1.0f, -1.0f,  1.0f,  1.0f,  0.0f,
-     1.0f, -1.0f, -1.0f,  0.0f,  1.0f,
-     1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
-     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,
-    -1.0f, -1.0f,  1.0f,  0.0f,  1.0f,
-    -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,
-    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
-    -1.0f,  1.0f, -1.0f,  1.0f,  0.0f,
-     1.0f, -1.0f, -1.0f,  0.0f,  1.0f,
-     1.0f,  1.0f, -1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,
-    -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,
-    -1.0f,  1.0f,  1.0f,  0.0f,  0.0f
-  };
+
 
   unsigned int VBO, VAO, EBO;
   glGenVertexArrays(1, &VAO);
@@ -171,7 +185,7 @@ int main()
   glBindVertexArray(VAO);
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vglCubeVerticesSize, vglCubeVertices, GL_STATIC_DRAW);
 
   // position
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -254,6 +268,8 @@ int main()
   // Set up the perspective projection
   window_size_callback(window, SCR_WIDTH, SCR_HEIGHT);
 
+  glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window))
@@ -262,11 +278,11 @@ int main()
       // -----
       processInput(window);
 
+      handleKeys(cam);
+
       int state;
 
       // render
-      // ------
-      glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       // No need to use glUseProgram every frame because there's only one shader
@@ -308,7 +324,7 @@ int main()
         glm::vec3 eye = glm::vec3(cameraX, 0, cameraZ);
         glm::vec3 center = glm::vec3(0.0, 0.0, 0.0);
         glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
-        glm::mat4 camera = glm::lookAt(eye, center, up);
+        glm::mat4 camera = glm::lookAt(cam.pos, cam.pos + cam.dir, cam.up);
         glm::mat4 tm = cam.projection * camera * model;
 
         glUniformMatrix4fv(pony_tm_uniform_location, 1, GL_FALSE, glm::value_ptr(tm));
