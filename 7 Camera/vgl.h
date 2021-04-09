@@ -26,7 +26,8 @@ public:
   // Projection matrix. Can be affected by the window size callback.
   glm::mat4 projection;
   // FOV. Can be changed with keys.
-  double fov = 90;
+  double default_fov = 90;
+  double fov = default_fov;
   double aspect_ratio;
   double zNear = 0.01;
 

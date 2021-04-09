@@ -94,18 +94,18 @@ void handleKeys(CameraState& cam) {
         cam.pos -= cam.dir * speed * dt;
         cout << "down\n";
         break;
-      // case GLFW_KEY_A:
-      //   cam->pos -= speed;
-      //   break;
-      // case GLFW_KEY_D:
-      //   cam->pos += speed;
-      //   break;
+      case GLFW_KEY_A:
+        cam.pos -= glm::normalize(glm::cross(cam.dir, cam.up)) * speed * dt;
+        break;
+      case GLFW_KEY_D:
+        cam.pos += glm::normalize(glm::cross(cam.dir, cam.up)) * speed * dt;
+        break;
       case GLFW_KEY_LEFT_BRACKET:
-        cam.fov -= 1 * dt;
+        cam.default_fov -= 1 * dt;
         update_projection_matrix = true;
         break;
       case GLFW_KEY_RIGHT_BRACKET:
-        cam.fov += 1 * dt;
+        cam.default_fov += 1 * dt;
         update_projection_matrix = true;
         break;
       case GLFW_KEY_J:
@@ -157,6 +157,21 @@ void mouse_callback (GLFWwindow* window, double xPos, double yPos) {
   cam->calcPos();
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+
+  cout << "cb" << '\n';
+  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+    if (action == GLFW_PRESS)
+      // "Aiming down sights" style zoom
+      cam->fov = cam->default_fov * 0.5;
+    else
+      cam->fov = cam->default_fov;
+
+    updateProjectionMatrix_(cam);
+  }
+}
+
 int main()
 {
   // glfw: initialize and configure
@@ -200,6 +215,7 @@ int main()
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   // Setup the mouse callback
   glfwSetCursorPosCallback(window, mouse_callback);  
+  glfwSetMouseButtonCallback(window, mouse_button_callback);
 
   // glad: load all OpenGL function pointers
   // ---------------------------------------
@@ -211,7 +227,6 @@ int main()
 
   auto ponyShader = vglBuildShaderFromFile("transpose_vert.glsl", "texture_frag.glsl");
   auto bgShader = vglBuildShaderFromFile("transpose_vert.glsl", "psychedelic_frag.glsl");
-
 
 
   unsigned int VBO, VAO, EBO;
