@@ -125,6 +125,38 @@ void handleKeys(CameraState& cam) {
   }
 }
 
+void mouse_callback (GLFWwindow* window, double xPos, double yPos) {
+  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+
+  if (cam->firstMouseCall) {
+    cam->lastX = xPos;
+    cam->lastY = yPos;
+    cam->firstMouseCall = false;
+    return;
+  }
+
+  constexpr double sensitivity = 0.1;
+
+  double xOffset = xPos - cam->lastX;
+  double yOffset = yPos - cam->lastY;
+  cam->lastX = xPos;
+  cam->lastY = yPos;
+
+  cam->yaw += xOffset * sensitivity;
+  cam->pitch -= yOffset * sensitivity;
+
+  // TODO figure out why there are artifacts at 90
+  constexpr float pitchThreshold = 89;
+  if (cam->pitch > pitchThreshold)
+    cam->pitch = pitchThreshold;
+  else if (cam->pitch < -pitchThreshold)
+    cam->pitch = -pitchThreshold;
+
+  cout << cam->pitch << '\n';
+
+  cam->calcPos();
+}
+
 int main()
 {
   // glfw: initialize and configure
@@ -163,6 +195,11 @@ int main()
   glfwSetWindowSizeCallback(window, window_size_callback);
 
   glfwSetKeyCallback(window, keyCallback);
+
+  // Capture the mouse cursor
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  // Setup the mouse callback
+  glfwSetCursorPosCallback(window, mouse_callback);  
 
   // glad: load all OpenGL function pointers
   // ---------------------------------------
@@ -205,7 +242,7 @@ int main()
   // Actually the uniform can be -1 if it's not used.
   // This is not considered an error.
   // See https://community.khronos.org/t/keep-unused-shader-variables-for-debugging/61280/5
-  // if (time < 0) {
+  // if (time < 0) { q  
   //   std::cerr << "time oof\n";
   //   return 1;
   // }

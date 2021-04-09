@@ -18,7 +18,7 @@
 
 #include "vgl.h"
 
-// Optimal reprezentation of a cube for
+// Optimal representation of a cube for
 // GL_TRIANGLE_STRIP rendering
 // Note to self: it takes way more time to
 // figure this out than it seems
