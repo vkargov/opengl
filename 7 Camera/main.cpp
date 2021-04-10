@@ -1,12 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "vgl.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
+#include "vgl.h"
+#include "controls.h"
+#include "camera.h"
+
 
 #include <chrono>
 #include <cmath>
@@ -35,10 +33,6 @@ struct Pony {
   double scale;
 };
 
-void updateProjectionMatrix_ (CameraState *cam) {
-  cam->projection = glm::perspective(glm::radians(cam->fov), cam->aspect_ratio, cam->zNear, 100.);
-}
-
 void updateProjectionMatrix (GLFWwindow* window) {
   auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
   updateProjectionMatrix_(cam);
@@ -49,80 +43,6 @@ void window_size_callback(GLFWwindow* window, int width, int height)
   auto camera_state = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
   camera_state->aspect_ratio = (double) width / height;
   updateProjectionMatrix(window);
-}
-
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  //cout << "Key event!\n" << flush;
-
-  CameraState *cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
-
-  // Not interested in repeats, they only mess things up with jerky motion
-  // If a key has been pressed, we *know* it's still pressed if it hasn't been released
-  // (big brain moment)
-  if (action == GLFW_REPEAT)
-    return;
-
-  if (cam->keys[key].state != action) {
-    cam->keys[key].state = action;
-    cam->keys[key].timestamp = glfwGetTime();
-  }
-
-  cout << "Action = " << action << '\n';
-}
-
-void handleKeys(CameraState& cam) {
-
-  bool update_projection_matrix = false;
-
-  auto d0 = glfwGetTime();
-
-  constexpr float speed = 0.05;
-  for (int key = 0; key < GLFW_KEY_LAST; key++) {
-    if (cam.keys[key].state == GLFW_RELEASE)
-      continue;
-
-    float dt = d0 - cam.keys[key].timestamp;
-
-    switch (key) {
-      case GLFW_KEY_W:
-      case GLFW_KEY_UP:
-        cam.pos += cam.dir * speed * dt;
-        cout << "up\n";
-        break;
-      case GLFW_KEY_S:
-      case GLFW_KEY_DOWN:
-        cam.pos -= cam.dir * speed * dt;
-        cout << "down\n";
-        break;
-      case GLFW_KEY_A:
-        cam.pos -= glm::normalize(glm::cross(cam.dir, cam.up)) * speed * dt;
-        break;
-      case GLFW_KEY_D:
-        cam.pos += glm::normalize(glm::cross(cam.dir, cam.up)) * speed * dt;
-        break;
-      case GLFW_KEY_LEFT_BRACKET:
-        cam.default_fov -= 1 * dt;
-        update_projection_matrix = true;
-        break;
-      case GLFW_KEY_RIGHT_BRACKET:
-        cam.default_fov += 1 * dt;
-        update_projection_matrix = true;
-        break;
-      case GLFW_KEY_J:
-        cam.zNear -= 0.01 * dt;
-        update_projection_matrix = true;
-        break;
-      case GLFW_KEY_K:
-        cam.zNear += 0.01 * dt;
-        update_projection_matrix = true;
-        break;
-    }
-
-    if (update_projection_matrix) {
-      //cout << "FOV = " << cam.fov << ", zNear = " << cam.zNear << endl;
-      updateProjectionMatrix_(&cam);
-    }
-  }
 }
 
 void mouse_callback (GLFWwindow* window, double xPos, double yPos) {
