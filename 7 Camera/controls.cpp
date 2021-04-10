@@ -26,6 +26,53 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
   cout << "Action = " << action << '\n';
 }
 
+void mouse_callback (GLFWwindow* window, double xPos, double yPos) {
+  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+
+  if (cam->firstMouseCall) {
+    cam->lastX = xPos;
+    cam->lastY = yPos;
+    cam->firstMouseCall = false;
+    return;
+  }
+
+  constexpr double sensitivity = 0.1;
+
+  double xOffset = xPos - cam->lastX;
+  double yOffset = yPos - cam->lastY;
+  cam->lastX = xPos;
+  cam->lastY = yPos;
+
+  cam->yaw += xOffset * sensitivity;
+  cam->pitch -= yOffset * sensitivity;
+
+  // TODO figure out why there are artifacts at 90
+  constexpr float pitchThreshold = 89;
+  if (cam->pitch > pitchThreshold)
+    cam->pitch = pitchThreshold;
+  else if (cam->pitch < -pitchThreshold)
+    cam->pitch = -pitchThreshold;
+
+  cout << cam->pitch << '\n';
+
+  cam->calcPos();
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
+
+  cout << "cb" << '\n';
+  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+    if (action == GLFW_PRESS)
+      // "Aiming down sights" style zoom
+      cam->fov = cam->default_fov * 0.5;
+    else
+      cam->fov = cam->default_fov;
+
+    updateProjectionMatrix_(cam);
+  }
+}
+
 void handleKeys(CameraState& cam) {
 
   bool update_projection_matrix = false;

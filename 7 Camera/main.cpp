@@ -1,10 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "vgl.h"
 #include "controls.h"
 #include "camera.h"
-
+#include "things.h"
+#include "vgl.h"
 
 #include <chrono>
 #include <cmath>
@@ -26,13 +26,6 @@ void tryOutGlm() {
   cout << "Perspective matrix:\n" << glm::to_string(proj) << '\n';
 }
 
-struct Pony {
-  glm::vec3 pos;
-  glm::vec3 rotation_axis;
-  double speed;
-  double scale;
-};
-
 void updateProjectionMatrix (GLFWwindow* window) {
   auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
   updateProjectionMatrix_(cam);
@@ -43,53 +36,6 @@ void window_size_callback(GLFWwindow* window, int width, int height)
   auto camera_state = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
   camera_state->aspect_ratio = (double) width / height;
   updateProjectionMatrix(window);
-}
-
-void mouse_callback (GLFWwindow* window, double xPos, double yPos) {
-  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
-
-  if (cam->firstMouseCall) {
-    cam->lastX = xPos;
-    cam->lastY = yPos;
-    cam->firstMouseCall = false;
-    return;
-  }
-
-  constexpr double sensitivity = 0.1;
-
-  double xOffset = xPos - cam->lastX;
-  double yOffset = yPos - cam->lastY;
-  cam->lastX = xPos;
-  cam->lastY = yPos;
-
-  cam->yaw += xOffset * sensitivity;
-  cam->pitch -= yOffset * sensitivity;
-
-  // TODO figure out why there are artifacts at 90
-  constexpr float pitchThreshold = 89;
-  if (cam->pitch > pitchThreshold)
-    cam->pitch = pitchThreshold;
-  else if (cam->pitch < -pitchThreshold)
-    cam->pitch = -pitchThreshold;
-
-  cout << cam->pitch << '\n';
-
-  cam->calcPos();
-}
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-  auto cam = static_cast<CameraState *>(glfwGetWindowUserPointer(window));
-
-  cout << "cb" << '\n';
-  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-    if (action == GLFW_PRESS)
-      // "Aiming down sights" style zoom
-      cam->fov = cam->default_fov * 0.5;
-    else
-      cam->fov = cam->default_fov;
-
-    updateProjectionMatrix_(cam);
-  }
 }
 
 int main()
@@ -196,41 +142,7 @@ int main()
   // Experiement with GLM									  
   tryOutGlm();
   
-  // Build pones
-  vector<Pony> ponies(30);
-  mt19937 gen(random_device{}());
-  uniform_real_distribution<> distr_vec(-1, 1);
-  uniform_real_distribution<> distr_speed(0, 1);
-
-  for (int i = 0; i < ponies.size(); i++) {
-    auto&& pony = ponies[i];
-    pony.pos.x = distr_vec(gen);
-    pony.pos.y = distr_vec(gen);
-    pony.pos.z = distr_vec(gen);
-    glm::vec3 axis;
-    axis.x = distr_vec(gen);
-    axis.y = distr_vec(gen);
-    axis.z = distr_vec(gen);
-    pony.rotation_axis = glm::normalize(axis);
-    pony.speed = distr_speed(gen);
-    pony.scale = distr_speed(gen) * 0.5;
-
-    // Collision check. Re-roll all the parameters if the collision check fails.
-    for (int j = 0; j < i; j++) {
-      auto&& pony2 = ponies[j];
-      auto dx = (pony.pos.x - pony2.pos.x);
-      auto dy = (pony.pos.y - pony2.pos.y);
-      auto dz = (pony.pos.z - pony2.pos.z);
-      auto mindist = pony.scale + pony2.scale;
-      if (2 * mindist * mindist > dx*dx + dy*dy + dz*dz)
-        i--;
-    }
-    // cout << "Generated the followig pony:\n";
-    // cout << "Position: " << pony.pos.x << ", " << pony.pos.y << ", " << pony.pos.z << '\n';
-    // cout << "Rotation axis: " << pony.rotation_axis.x << ", " << pony.rotation_axis.y << ", " << pony.rotation_axis.z << '\n';
-    // cout << "Speed: " << pony.speed << '\n';
-    // cout << "Scale: " << pony.speed << '\n';
-  }
+  auto things = makeCubeScene(30);
 
   auto pony_tm_uniform_location = glGetUniformLocation(ponyShader, "tm");
   auto background_tm_uniform_location = glGetUniformLocation(bgShader, "tm");
@@ -279,15 +191,15 @@ int main()
 
       glUniform1f(pony_time_loc, (GLfloat)dt);
 
-      for (auto& pony : ponies) {
+      for (auto& thing : things) {
         // Model matrix
         //cout << "New matrix\n";
-        glm::mat4 model = glm::translate(identity_matrix, pony.pos);
+        glm::mat4 model = glm::translate(identity_matrix, thing.pos);
         //cout << "After translate: " << glm::to_string(tm) << '\n';
-        auto angle = glm::radians<float>(pony.speed * dt);
-        model = glm::rotate(model, angle, pony.rotation_axis);
+        auto angle = glm::radians<float>(thing.speed * dt);
+        model = glm::rotate(model, angle, thing.rotation_axis);
         //cout << "After rotate:" << glm::to_string(tm) << '\n';
-        model = glm::scale(model, glm::vec3(pony.scale));
+        model = glm::scale(model, glm::vec3(thing.scale));
 
         float radius = 1.5;
         // rotate clockwise
